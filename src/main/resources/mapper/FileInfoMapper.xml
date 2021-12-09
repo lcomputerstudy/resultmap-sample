@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dcp.example.mapper.FileInfoMapper">
+
+	<resultMap type="com.dcp.example.domain.FileInfo" id="FileInfoMap">
+		<result property="fId" column="f_id" />
+		<result property="fMaster" column="f_master" />
+		<result property="fName" column="f_name" />
+	</resultMap>
+	
+	<insert id="saveFileInfo">
+		INSERT INTO			dcp_fileinfo (f_master, f_name)
+		VALUES				((SELECT b_id FROM dcp_board ORDER BY b_id DESC LIMIT 1), #{fName})
+	</insert>
+	
+	<select id="getFileInfo" parameterType="int" resultMap="FileInfoMap">
+		SELECT 				f_id,
+							f_master,
+							f_name
+		FROM 				dcp_fileinfo
+		WHERE				f_master = #{fMaster}
+	</select>
+</mapper>

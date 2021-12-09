@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dcp.example.mapper.CommentMapper">
+
+	<resultMap type="com.dcp.example.domain.Comment" id="CommentMap">
+		<result property="cId" column="c_id" />
+		<result property="cContentall" column="c_content_all" />
+		<result property="cContent" column="c_content" />
+		<result property="cMaster" column="c_master" />
+		<result property="cWriter" column="c_writer" />
+		<result property="cDateTime" column="c_datetime" />
+		<result property="cGroup" column="c_group" />
+		<result property="cOrder" column="c_order" />
+		<result property="cDepth" column="c_depth" />
+	</resultMap>
+	
+	<select id="selectCommentList" resultMap="CommentMap">
+	      SELECT			dcp_comment.*,
+							CONCAT(REPEAT('ㄴ', dcp_comment.c_depth-1), dcp_comment.c_content) c_content_all
+		  FROM				dcp_comment
+		  LEFT JOIN			dcp_user ON dcp_comment.c_writer = dcp_user.u_id
+		  WHERE				dcp_comment.c_master = ${board.bId}
+		  ORDER BY 			dcp_comment.c_group DESC, dcp_comment.c_order ASC
+	</select>
+	
+	<insert id="writeComment">
+		  INSERT INTO 	dcp_comment (c_master, c_content, c_writer, c_group, c_order, c_depth)
+		  VALUES		(#{cMaster}, #{cContent}, #{user.uName}, 1, 1, 1)
+	</insert>
+	
+	<update id="setUpOriginal">
+		  UPDATE		dcp_comment
+		  SET			c_group = last_insert_id()
+		  WHERE			c_id = last_insert_id() 
+	</update>
+	
+	<update id="setUpReplace1">
+		  UPDATE		dcp_comment
+		  SET			c_order = c_order + 1
+		  WHERE			c_group = #{cGroup}
+		  AND 			c_order > #{cOrder}
+	</update>
+	
+	<update id="setUpReplace2">
+		  UPDATE		dcp_comment
+		  SET			c_group = #{cGroup},
+		  				c_depth = #{cDepth} + 1,
+		  				c_order = #{cOrder} + 1
+		  WHERE			c_id = last_insert_id()
+	</update>
+
+
+</mapper>

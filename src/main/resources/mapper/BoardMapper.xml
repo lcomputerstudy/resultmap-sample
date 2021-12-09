@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dcp.example.mapper.BoardMapper">
+	
+	<resultMap type="com.dcp.example.domain.Board" id="BoardMap">
+		<result property="bRownum" column="ROWNUM" />
+		<result property="bId" column="b_id" />
+		<result property="bTitle" column="b_title" />
+		<result property="bTitleall" column="b_title_all" />
+		<result property="bContent" column="b_content" />
+		<result property="bWriter" column="b_writer" />
+		<result property="bDateTime" column="b_datetime" />
+		<result property="bViews" column="b_views" />
+		<result property="bGroup" column="b_group" />
+		<result property="bOrder" column="b_order" />
+		<result property="bDepth" column="b_depth" />
+	</resultMap>
+	
+	<select id="selectBoardList" resultMap="BoardMap">
+	      SELECT 		@ROWNUM := @ROWNUM -1 AS ROWNUM,
+						dcp_board.*,
+						CONCAT(REPEAT('ㄴ', dcp_board.b_depth-1), dcp_board.b_title) b_title_all
+		  FROM			dcp_board
+		  LEFT JOIN	    (SELECT		@ROWNUM := (SELECT COUNT(*) - 0 + 1 FROM dcp_board),
+									dcp_board.b_id
+						 FROM 		dcp_board
+						) tb ON dcp_board.b_id = tb.b_id
+		  LEFT JOIN		dcp_user ON dcp_board.b_writer = dcp_user.u_id
+		  ORDER BY dcp_board.b_group DESC, dcp_board.b_order ASC
+<!-- 	  LIMIT ?, 5  	-->
+	</select>
+	
+	<update id="plusViews">
+		  UPDATE		dcp_board
+		  SET			b_views = b_views + 1
+		  WHERE			b_id = #{bId} 
+	</update>
+	
+	<select id="readBoard" resultType="Board">
+	      SELECT         b_id as bId,
+				         b_title as bTitle,
+				         b_content as bContent,
+				         b_writer as bWriter,
+				         b_views as bViews,
+				         b_datetime as bDateTime,
+				         b_group as bGroup
+	      FROM           dcp_board
+	      WHERE			 b_id = #{bId}
+	</select>
+	
+	<insert id="writeBoard">
+		  INSERT INTO 	dcp_board (b_title, b_content, b_writer, b_group, b_order, b_depth)
+		  VALUES		(#{bTitle}, #{bContent}, #{user.uName}, 1, 1, 1)
+<!--  	  <selectKey keyProperty="b_id" resultType="Integer">
+       		 SELECT LAST_INSERT_ID()
+    	  </selectKey> -->
+	</insert>
+
+	<update id="setUpOriginal">
+		  UPDATE		dcp_board
+		  SET			b_group = last_insert_id()
+		  WHERE			b_id = last_insert_id()
+	</update>
+		
+	
+	<update id="setUpReplace1">
+		  UPDATE		dcp_board
+		  SET			b_order = b_order + 1
+		  WHERE			b_group = #{bGroup}
+		  AND 			b_order > #{bOrder}
+	</update>
+	
+	<update id="setUpReplace2">
+		  UPDATE		dcp_board
+		  SET			b_group = #{bGroup},
+		  				b_depth = #{bDepth} + 1,
+		  				b_order = #{bOrder} + 1
+		  WHERE			b_id = last_insert_id()
+	</update>
+	
+	<delete id="deleteBoard">
+		  DELETE FROM 	dcp_board
+		  WHERE 		b_id = #{bId}
+	</delete>
+	
+	<update id="adjustBoard">
+		  UPDATE 		dcp_board
+		  SET			b_title = #{bTitle},
+		  				b_content = #{bContent}
+		  WHERE			b_id = #{bId}
+	</update>
+	
+	<select id="searchBoard" resultMap="BoardMap">
+		 SELECT 		@ROWNUM := @ROWNUM -1 AS ROWNUM,
+						dcp_board.*,
+						CONCAT(REPEAT('ㄴ', dcp_board.b_depth-1), dcp_board.b_title) b_title_all
+		  FROM			dcp_board
+		  LEFT JOIN	    (SELECT		@ROWNUM := (SELECT COUNT(*) - 0 + 1 FROM dcp_board),
+									dcp_board.b_id
+						 FROM 		dcp_board
+						) tb ON dcp_board.b_id = tb.b_id
+		  LEFT JOIN		dcp_user ON dcp_board.b_writer = dcp_user.u_id
+		  <where>
+			<if test='searchOption == "all"'>
+				b_writer like '%${keyword}%'
+				OR b_content like '%${keyword}%'
+				OR b_title like '%${keyword}%'
+			</if> 
+			<if test='searchOption == "title"'>
+				b_title like '%${keyword}%'
+			</if>
+			<if test='searchOption == "content"'>
+				b_content like '%${keyword}%'
+			</if>
+			<if test='searchOption == "writer"'>
+				b_writer like '%${keyword}%'
+			</if>
+		  </where>
+		  ORDER BY dcp_board.b_group DESC, dcp_board.b_order ASC
+	</select>
+
+</mapper>
